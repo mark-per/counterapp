@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+    Alert,
     Avatar,
     Box,
     Button,
@@ -10,6 +11,7 @@ import {
     Grid,
     IconButton,
     Modal,
+    Snackbar,
     TextField,
     Typography
 } from "@mui/material";
@@ -23,8 +25,8 @@ const style = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: {lg:"18vw", md:"25vw",sm:"40vw", xs:"70vw"},
-    height:{lg:"25vh", md:"30vh",sm:"30vh", xs:"30vh"},
+    width: {lg: "18vw", md: "25vw", sm: "40vw", xs: "70vw"},
+    height: {lg: "25vh", md: "30vh", sm: "30vh", xs: "30vh"},
     bgcolor: 'background.paper',
     borderRadius: '10px',
     boxShadow: 24,
@@ -62,16 +64,12 @@ const RenderCounters = () => {
             })
 
             const parsedRes = await response.json()
-
             if (response.ok) {
-                if (parsedRes.length > 0) {
-                    setCounters(parsedRes)
-                }
-            } else {
-                setServerError(true)
+                setCounters(parsedRes)
             }
         } catch (err) {
             setServerError(true)
+            setErrrorMssg("Internal server error");
         }
     }
 
@@ -81,94 +79,126 @@ const RenderCounters = () => {
 
     const handleOnSubmit = async () => {
         if (counterCount != null && counterName.length > 0) {
-            const response = await fetch("http://localhost:9090/api/counters", {
-                method: "POST",
+            try {
+                const response = await fetch("http://localhost:9090/api/counters", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        name: counterName,
+                        count: counterCount
+                    })
+                })
+
+                setCounterName('');
+                setCounterCount(0);
+                handleClose()
+
+                const parsedResponse = await response.text();
+                retrieveCounters();
+                if (response.ok) {
+                    return;
+                }
+            } catch (err) {
+                setServerError(true);
+                setErrrorMssg("Internal server error");
+            }
+        } else {
+            setSubmitError(true);
+            setErrrorMssg("Please provide a name");
+        }
+    }
+
+    const handleOnIncrement = async (id) => {
+        try {
+            const response = await fetch(`http://localhost:9090/api/counters/${id}/increment`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 mode: 'cors',
-                body: JSON.stringify({
-                    name: counterName,
-                    count: counterCount
-                })
             })
-
-            setCounterName('');
-            setCounterCount(0);
-            handleClose()
 
             const parsedResponse = await response.text();
             retrieveCounters();
             if (response.ok) {
                 return;
-            } else {
-                setServerError(true);
             }
-        } else {
-            setSubmitError(true);
-        }
-    }
-
-    const handleOnIncrement = async (id) => {
-        const response = await fetch(`http://localhost:9090/api/counters/${id}/increment`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            mode: 'cors',
-        })
-
-        const parsedResponse = await response.text();
-        retrieveCounters();
-        if (response.ok) {
-            return;
-        } else {
+        } catch (err) {
             setServerError(true);
+            setErrrorMssg("Internal server error");
         }
     }
 
     const handleOnDecrement = async (id) => {
-        const response = await fetch(`http://localhost:9090/api/counters/${id}/decrement`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            mode: 'cors',
-        })
+        try {
+            const response = await fetch(`http://localhost:9090/api/counters/${id}/decrement`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                mode: 'cors',
+            })
 
-        const parsedResponse = await response.text();
-        retrieveCounters();
-        if (response.ok) {
-            return;
-        } else {
+            const parsedResponse = await response.text();
+            retrieveCounters();
+            if (response.ok) {
+                return;
+            }
+        } catch (err) {
             setServerError(true);
+            setErrrorMssg("Internal server error");
         }
     }
 
     const handleOnDelete = async (id) => {
-        const response = await fetch(`http://localhost:9090/api/counters/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            mode: 'cors',
-        })
+        try {
+            const response = await fetch(`http://localhost:9090/api/counters/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                mode: 'cors',
+            })
 
-        const parsedResponse = await response.text();
-        retrieveCounters();
-        if (response.ok) {
-            return;
-        } else {
+            const parsedResponse = await response.text();
+            if (response.ok) {
+                await retrieveCounters();
+                return;
+            }
+        } catch (err) {
             setServerError(true);
+            setErrrorMssg("Internal server error");
         }
     }
 
     return (
-        <Box sx={{ width: "90vw" ,height:{lg:"100vh", md:"100vh", sm:"100vh", xs:"120vh"}, bgcolor: '#CEDEBD'}}>
+        <Box sx={{width: "90vw", height: {lg: "100vh", md: "100vh", sm: "100vh", xs: "120vh"}, bgcolor: '#CEDEBD'}}>
+            <Snackbar open={serverError} autoHideDuration={1500} onClose={() => setServerError(false)}
+                      anchorOrigin={{vertical: 'top', horizontal: 'center'}}>
+                <Alert onClose={handleClose} severity="error" sx={{width: '100%'}}>
+                    {errorMssg}
+                </Alert>
+            </Snackbar>
+            <Snackbar open={submitError} autoHideDuration={1500} onClose={() => setSubmitError(false)}
+                      anchorOrigin={{vertical: 'top', horizontal: 'center'}}>
+                <Alert onClose={handleClose} severity="error" sx={{width: '100%'}}>
+                    {errorMssg}
+                </Alert>
+            </Snackbar>
             <Grid container justifyContent="center" spacing={2}>
                 {counters.map((counter) => (
                     <Grid item xs={10} sm={4} md={3} lg={2} key={counter.id} container justifyContent="center">
-                        <Card sx={{bgcolor: '#9EB384', mt: 10, boxShadow: 8, height: "170px", width: "290px", borderRadius:"8px"}}>
+                        <Card sx={{
+                            bgcolor: '#9EB384',
+                            mt: 10,
+                            boxShadow: 8,
+                            height: "170px",
+                            width: "290px",
+                            borderRadius: "8px"
+                        }}>
                             <CardHeader
                                 sx={{
                                     display: 'flex',
@@ -191,7 +221,7 @@ const RenderCounters = () => {
                                 }
                                 action={
                                     <IconButton sx={{fontSize: '24px', color: '#952323'}}>
-                                        <DeleteIcon onClick={()=>handleOnDelete(counter.id)}/>
+                                        <DeleteIcon onClick={() => handleOnDelete(counter.id)}/>
                                     </IconButton>
                                 }
                                 title={counter.name}
@@ -203,16 +233,17 @@ const RenderCounters = () => {
                             </CardContent>
                             <CardActions sx={{fontSize: 15, display: 'flex', justifyContent: 'space-between'}}>
                                 <IconButton sx={{fontSize: '24px', color: '#BB2525'}}>
-                                    <RemoveIcon onClick={()=>handleOnDecrement(counter.id)}/>
+                                    <RemoveIcon onClick={() => handleOnDecrement(counter.id)}/>
                                 </IconButton>
                                 <IconButton sx={{fontSize: '24px', color: '#102C57'}}>
-                                    <AddIcon onClick={()=>handleOnIncrement(counter.id)}/>
+                                    <AddIcon onClick={() => handleOnIncrement(counter.id)}/>
                                 </IconButton>
                             </CardActions>
                         </Card>
                     </Grid>
                 ))}
-                <Box height="170px" width="150px" mt={10} ml={5} display="flex" justifyContent="center" flexDirection="column">
+                <Box height="170px" width="150px" mt={10} ml={5} display="flex" justifyContent="center"
+                     flexDirection="column">
                     <IconButton sx={{}}>
                         <AddIcon sx={{fontSize: "80px"}} onClick={handleOpen}/>
                     </IconButton>
@@ -243,8 +274,8 @@ const RenderCounters = () => {
                         id="outlined-basic"
                         label="Counter Name"
                         variant="outlined"
-                        inputProps={{ maxLength: 8 }}
-                        sx={{ mb: 2 }}
+                        inputProps={{maxLength: 8}}
+                        sx={{mb: 2}}
                     />
                     <TextField
                         onChange={(e) => {
@@ -257,14 +288,14 @@ const RenderCounters = () => {
                         id="outlined-basic"
                         label="Counter Count"
                         variant="outlined"
-                        inputProps={{ maxLength: 18 }}
-                        sx={{ mb: 2 }}
+                        inputProps={{maxLength: 18}}
+                        sx={{mb: 2}}
                     />
-                    <div sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div sx={{display: 'flex', justifyContent: 'space-between'}}>
                         <Button onClick={handleOnSubmit} variant="contained">
                             Submit
                         </Button>
-                        <Button sx={{ ml: 5.5 }} onClick={handleClose} variant="contained">
+                        <Button sx={{ml: 5.5}} onClick={handleClose} variant="contained">
                             Cancel
                         </Button>
                     </div>
