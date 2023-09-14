@@ -26,7 +26,7 @@ const style = {
     width: {lg:"18vw", md:"25vw",sm:"40vw", xs:"70vw"},
     height:{lg:"25vh", md:"30vh",sm:"30vh", xs:"30vh"},
     bgcolor: 'background.paper',
-    border: '2px solid #000',
+    borderRadius: '10px',
     boxShadow: 24,
     p: 4,
     display: 'flex',             // Add display: 'flex'
@@ -168,7 +168,7 @@ const RenderCounters = () => {
             <Grid container justifyContent="center" spacing={2}>
                 {counters.map((counter) => (
                     <Grid item xs={10} sm={4} md={3} lg={2} key={counter.id} container justifyContent="center">
-                        <Card sx={{bgcolor: '#9EB384', mt: 10, boxShadow: 8, height: "170px", width: "290px",}}>
+                        <Card sx={{bgcolor: '#9EB384', mt: 10, boxShadow: 8, height: "170px", width: "290px", borderRadius:"8px"}}>
                             <CardHeader
                                 sx={{
                                     display: 'flex',
@@ -234,19 +234,30 @@ const RenderCounters = () => {
                         Add Counter
                     </Typography>
                     <TextField
-                        onChange={(e) => setCounterName(e.target.value)}
+                        onChange={(e) => {
+                            // Limit input to 8 characters
+                            const inputValue = e.target.value.slice(0, 8);
+                            setCounterName(inputValue);
+                        }}
                         value={counterName}
                         id="outlined-basic"
                         label="Counter Name"
                         variant="outlined"
+                        inputProps={{ maxLength: 8 }}
                         sx={{ mb: 2 }}
                     />
                     <TextField
-                        onChange={(e) => setCounterCount(e.target.value)}
+                        onChange={(e) => {
+                            // Limit input to 18 characters
+                            // long can contain upto 19 characters
+                            const inputValue = e.target.value.slice(0, 18);
+                            setCounterCount(inputValue);
+                        }}
                         value={counterCount}
                         id="outlined-basic"
                         label="Counter Count"
                         variant="outlined"
+                        inputProps={{ maxLength: 18 }}
                         sx={{ mb: 2 }}
                     />
                     <div sx={{ display: 'flex', justifyContent: 'space-between' }}>
